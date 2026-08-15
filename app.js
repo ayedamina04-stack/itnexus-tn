@@ -7,6 +7,7 @@ var logger = require('morgan');
 const http = require('http');
 
 require('dotenv').config();
+const { connectToMongoDB } = require('./config/mongo.con');
 
 // importation des routes
 
@@ -43,6 +44,7 @@ app.use(function(err, req, res, next) {
 
 const server = http.createServer(app);
 server.listen(process.env.port , () => {
+  connectToMongoDB();
   console.log('serveur démarré sur le port ${process.env.port}');
 
 
