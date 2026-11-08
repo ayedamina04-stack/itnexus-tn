@@ -1,19 +1,30 @@
-var express = require('express');
-var router = express.Router();
+
+const express = require('express');
+const router = express.Router();
+
 const userController = require('../controller/user.controller');
 
-// CRUD routes for users
-router.post('/', userController.createUser);
-router.get('/', userController.getUsers);
-router.get('/hello', userController.hello);
-router.get('/:id', userController.getUserById);
+const {
+    protect,
+    authorize
+} = require('../middleware/auth.middleware');
+
+// Toutes les routes utilisateurs nécessitent une connexion
+router.use(protect);
+
+// Créer un utilisateur : admin uniquement
+router.post('/', authorize('admin'), userController.createUser);
+
+// Consulter tous les utilisateurs : admin uniquement
+router.get('/', authorize('admin'), userController.getUsers);
+
+// Consulter un utilisateur : admin uniquement
+router.get('/:id', authorize('admin'), userController.getUserById);
+
+// Modifier un compte : propriétaire ou admin
 router.put('/:id', userController.updateUser);
-router.delete('/:id', userController.deleteUser);
+
+// Supprimer un compte : admin uniquement
+router.delete('/:id', authorize('admin'), userController.deleteUser);
 
 module.exports = router;
-
-/* GET users listing. */
-router.get('/', function(req, res, next) {
-  res.json('respond with a resource');
-});
-

@@ -1,80 +1,265 @@
-const UserModel = require('../models/user.model');
 
+const User = require('../models/user.model');
+const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
+
+// Créer un utilisateur (admin uniquement)
 module.exports.createUser = async (req, res) => {
     try {
-        const user = new UserModel(req.body);
-        console.log('Creating user with data:', req.body); // Debugging line
-        await user.save();
-        res.status(201).json(user);
+        const { name, email, password, role } = req.body;
+
+        if (
+            typeof name !== 'string' ||
+            typeof email !== 'string' ||
+            typeof password !== 'string' ||
+            !name.trim() ||
+            !email.trim() ||
+            !password
+        ) {
+            return res.status(400).json({
+                message: 'Tous les champs obligatoires doivent être remplis.'
+            });
+        }
+
+        if (password.length < 8) {
+            return res.status(400).json({
+                message: 'Le mot de passe doit contenir au moins 8 caractères.'
+            });
+        }
+
+        const emailNormalise = email.trim().toLowerCase();
+
+        const emailValide = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailValide.test(emailNormalise)) {
+            return res.status(400).json({
+                message: 'Adresse email invalide.'
+            });
+        }
+
+        const roleAutorise = ['user', 'author', 'admin'];
+
+        if (role && !roleAutorise.includes(role)) {
+            return res.status(400).json({
+                message: 'Rôle invalide.'
+            });
+        }
+
+        const existe = await User.findOne({
+            email: emailNormalise
+        });
+
+        if (existe) {
+            return res.status(409).json({
+                message: 'Cette adresse email existe déjà.'
+            });
+        }
+
+        const motDePasseHache = await bcrypt.hash(password, 12);
+
+        const nouvelUtilisateur = await User.create({
+            name: name.trim(),
+            email: emailNormalise,
+            password: motDePasseHache,
+            role: role || 'user'
+        });
+
+        return res.status(201).json({
+            message: 'Utilisateur créé avec succès.',
+            user: {
+                id: nouvelUtilisateur._id,
+                name: nouvelUtilisateur.name,
+                email: nouvelUtilisateur.email,
+                role: nouvelUtilisateur.role
+            }
+        });
+
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        console.error(error);
+
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: 'Cette adresse email existe déjà.'
+            });
+        }
+
+        return res.status(500).json({
+            message: 'Erreur interne du serveur.'
+        });
     }
 };
+
+
+// Consulter tous les utilisateurs
 module.exports.getUsers = async (req, res) => {
     try {
-        const users = await UserModel.find();
-        res.status(200).json(users);
+        const users = await User.find().select(
+            'name email role age phone address bio isActive createdAt'
+        );
+
+        return res.status(200).json(users);
+
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        return res.status(500).json({
+            message: 'Erreur lors de la récupération des utilisateurs.'
+        });
     }
 };
 
+
+// Consulter un utilisateur
 module.exports.getUserById = async (req, res) => {
     try {
-        const user = await UserModel.findById(req.params.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        res.status(200).json(user);
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({
+                message: 'Identifiant invalide.'
+            });
+        }
+
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({
+                message: 'Utilisateur introuvable.'
+            });
+        }
+
+        return res.status(200).json(user);
+
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        return res.status(500).json({
+            message: 'Erreur lors de la récupération du compte.'
+        });
     }
 };
 
+
+// Modifier un utilisateur
 module.exports.updateUser = async (req, res) => {
     try {
-        const user = await UserModel.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-            runValidators: true,
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({
+                message: 'Identifiant invalide.'
+            });
+        }
+
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({
+                message: 'Utilisateur introuvable.'
+            });
+        }
+
+        const estAdmin = req.user.role === 'admin';
+        const estProprietaire = req.user.id === user._id.toString();
+
+        if (!estAdmin && !estProprietaire) {
+            return res.status(403).json({
+                message: 'Vous ne pouvez modifier que votre propre compte.'
+            });
+        }
+
+        // Champs modifiables par l'utilisateur
+        const champsAutorises = [
+            'name',
+            'email',
+            'age',
+            'phone',
+            'address',
+            'bio'
+        ];
+
+        champsAutorises.forEach(champ => {
+            if (req.body[champ] !== undefined) {
+                user[champ] = req.body[champ];
+            }
         });
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        res.status(200).json(user);
+
+        // Seul un admin peut modifier le rôle et l'état du compte
+        if (estAdmin) {
+            if (req.body.role !== undefined) {
+                if (!['user', 'admin', 'author'].includes(req.body.role)) {
+                    return res.status(400).json({
+                        message: 'Rôle invalide.'
+                    });
+                }
+
+                user.role = req.body.role;
+            }
+
+            if (req.body.isActive !== undefined) {
+                if (typeof req.body.isActive !== 'boolean') {
+                    return res.status(400).json({
+                        message: 'État du compte invalide.'
+                    });
+                }
+
+                user.isActive = req.body.isActive;
+            }
+        }
+
+        await user.save();
+
+        return res.status(200).json({
+            message: 'Compte modifié avec succès.',
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                age: user.age,
+                phone: user.phone,
+                address: user.address,
+                bio: user.bio,
+                isActive: user.isActive
+            }
+        });
+
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: 'Cette adresse email est déjà utilisée.'
+            });
+        }
+
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({
+                message: error.message
+            });
+        }
+
+        return res.status(500).json({
+            message: 'Erreur lors de la modification du compte.'
+        });
     }
 };
 
+
+// Supprimer un utilisateur (admin uniquement)
 module.exports.deleteUser = async (req, res) => {
     try {
-        const user = await UserModel.findByIdAndDelete(req.params.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        res.status(200).json({ message: 'User deleted' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({
+                message: 'Identifiant invalide.'
+            });
+        }
 
-module.exports.hello = async (req, res) => {
-    res.status(200).json({ message: 'Hello, World!' });
-};
+        const user = await User.findByIdAndDelete(req.params.id);
 
-module.exports.createUserAdmin = async (req, res) => {
-    try {
-        // Ensure role is admin regardless of request body
-        const adminData = Object.assign({}, req.body, { role: 'admin' });
-        const admin = new UserModel(adminData);
-        await admin.save();
-        res.status(201).json(admin);
+        if (!user) {
+            return res.status(404).json({
+                message: 'Utilisateur introuvable.'
+            });
+        }
+
+        return res.status(200).json({
+            message: 'Utilisateur supprimé avec succès.'
+        });
+
     } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
-};
-module.exports.createAuthor = async(req, res) => {
-    try {
-        // Ensure role is admin regardless of request body
-        const authorData = Object.assign({}, req.body, { role: 'author'});
-        const author = new UserModel(authorData);
-        await author.save();
-        res.status(201).json(author);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
+        return res.status(500).json({
+            message: 'Erreur lors de la suppression.'
+        });
     }
 };
