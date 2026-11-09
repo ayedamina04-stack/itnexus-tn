@@ -28,7 +28,6 @@ module.exports.createUser = async (req, res) => {
         }
 
         const emailNormalise = email.trim().toLowerCase();
-
         const emailValide = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
         if (!emailValide.test(emailNormalise)) {
@@ -37,9 +36,9 @@ module.exports.createUser = async (req, res) => {
             });
         }
 
-        const roleAutorise = ['user', 'author', 'admin'];
+        const rolesAutorises = ['user', 'author', 'admin'];
 
-        if (role && !roleAutorise.includes(role)) {
+        if (role && !rolesAutorises.includes(role)) {
             return res.status(400).json({
                 message: 'Rôle invalide.'
             });
@@ -75,7 +74,7 @@ module.exports.createUser = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Erreur création utilisateur :', error);
 
         if (error.code === 11000) {
             return res.status(409).json({
@@ -90,7 +89,7 @@ module.exports.createUser = async (req, res) => {
 };
 
 
-// Consulter tous les utilisateurs
+// Consulter tous les utilisateurs (admin uniquement)
 module.exports.getUsers = async (req, res) => {
     try {
         const users = await User.find().select(
@@ -100,6 +99,8 @@ module.exports.getUsers = async (req, res) => {
         return res.status(200).json(users);
 
     } catch (error) {
+        console.error(error);
+
         return res.status(500).json({
             message: 'Erreur lors de la récupération des utilisateurs.'
         });
@@ -107,7 +108,7 @@ module.exports.getUsers = async (req, res) => {
 };
 
 
-// Consulter un utilisateur
+// Consulter un utilisateur (admin uniquement)
 module.exports.getUserById = async (req, res) => {
     try {
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -127,6 +128,8 @@ module.exports.getUserById = async (req, res) => {
         return res.status(200).json(user);
 
     } catch (error) {
+        console.error(error);
+
         return res.status(500).json({
             message: 'Erreur lors de la récupération du compte.'
         });
@@ -176,6 +179,15 @@ module.exports.updateUser = async (req, res) => {
             }
         });
 
+        // Normalisation des données
+        if (typeof user.name === 'string') {
+            user.name = user.name.trim();
+        }
+
+        if (typeof user.email === 'string') {
+            user.email = user.email.trim().toLowerCase();
+        }
+
         // Seul un admin peut modifier le rôle et l'état du compte
         if (estAdmin) {
             if (req.body.role !== undefined) {
@@ -217,6 +229,8 @@ module.exports.updateUser = async (req, res) => {
         });
 
     } catch (error) {
+        console.error('Erreur modification utilisateur :', error);
+
         if (error.code === 11000) {
             return res.status(409).json({
                 message: 'Cette adresse email est déjà utilisée.'
@@ -258,6 +272,8 @@ module.exports.deleteUser = async (req, res) => {
         });
 
     } catch (error) {
+        console.error('Erreur suppression utilisateur :', error);
+
         return res.status(500).json({
             message: 'Erreur lors de la suppression.'
         });
