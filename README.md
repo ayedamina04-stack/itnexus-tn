@@ -202,7 +202,7 @@ Some demonstration content and frontend interactions are temporary and are not p
 
 **Amina Ayed**
 
-Third-Year Bachelor's Student in Management Information Systems (MIS)
+Third-Year Bachelor's Student in Business Intelligence at ISG Sousse,Tunisia
 
 Interested in Full-Stack Development, Web Technologies, and Business Intelligence.
 
