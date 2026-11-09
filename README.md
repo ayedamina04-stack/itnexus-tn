@@ -1,5 +1,9 @@
-# ITNEXUS TN 
+# ITNEXUS TN
 ### Tunisia's IT News & Events Platform
+
+**Project:** ITNEXUS TN  
+**Repository:** [itnexus-tn](https://github.com/ayedamina04-stack/itnexus-tn)  
+**Stack:** MERN (MongoDB, Express.js, React, Node.js)
 
 ITNEXUS TN is a full-stack web application designed to bring Tunisia's technology community together through tech news, articles, events, workshops, and networking opportunities.
 
@@ -72,7 +76,6 @@ it-news-events/
 │   │   ├── pages/
 │   │   ├── services/
 │   │   ├── App.jsx
-│   │   ├── Home.jsx
 │   │   └── main.jsx
 │   └── package.json
 │
@@ -91,8 +94,8 @@ Make sure you have installed:
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/ayedamina04-stack/formation-js.git
-cd formation-js
+git clone https://github.com/ayedamina04-stack/itnexus-tn.git
+cd itnexus-tn
 ```
 
 ### 2. Configure the backend
@@ -119,9 +122,7 @@ Start the backend:
 npm start
 ```
 
-The API will run at:
-
-`http://localhost:5000`
+The API will run at `http://localhost:5000`.
 
 For development with automatic server restarts:
 
@@ -144,9 +145,7 @@ Start the development server:
 npm run dev
 ```
 
-The frontend will normally be available at:
-
-`http://localhost:5173`
+The frontend will normally be available at `http://localhost:5173`.
 
 ### 4. Build the frontend
 
@@ -202,7 +201,7 @@ Some demonstration content and frontend interactions are temporary and are not p
 
 **Amina Ayed**
 
-Third-Year Bachelor's Student in Business Intelligence at ISG Sousse,Tunisia
+Third-Year Bachelor's Student in Management Information Systems (MIS) at ISG Sousse, Tunisia.
 
 Interested in Full-Stack Development, Web Technologies, and Business Intelligence.
 
@@ -211,4 +210,7 @@ Interested in Full-Stack Development, Web Technologies, and Business Intelligenc
 💼 **LinkedIn:** [Connect with me](https://www.linkedin.com/in/amina-ayed-b73aa3280/)
 
 🐙 **GitHub:** [ayedamina04-stack](https://github.com/ayedamina04-stack)
+
+---
+
 *Built as a learning and development project to explore full-stack web development and create a platform for Tunisia's technology community.*
