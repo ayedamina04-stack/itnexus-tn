@@ -11,12 +11,10 @@ import {
   Bookmark,
   MessageCircle,
   Eye,
-  Clock,
   Users,
   X,
   Send,
-  Monitor,
-  Sparkles
+  Monitor
 } from 'lucide-react';
 import api from '../services/api';
 
